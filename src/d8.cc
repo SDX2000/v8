@@ -64,6 +64,8 @@
 #define ASSERT(condition) assert(condition)
 #endif
 
+#include "v8utils.h"
+
 namespace v8 {
 
 
@@ -234,6 +236,23 @@ Handle<Value> Shell::Read(const Arguments& args) {
     return ThrowException(String::New("Error loading file"));
   }
   return source;
+}
+
+Handle<Value> Shell::WriteFile(const Arguments& args) {
+  String::Utf8Value fileName(args[0]);
+  String::Utf8Value data(args[1]);
+  
+  if (*fileName == NULL) {
+    return ThrowException(String::New("Error invalid file name."));
+  }
+  
+  if (*data == NULL) {
+    return ThrowException(String::New("Error writing to file, supplied data is null or invalid"));
+  }
+  
+  i::WriteChars(*fileName, *data, data.length(), true);
+  
+  return Undefined();
 }
 
 
@@ -668,7 +687,8 @@ Handle<ObjectTemplate> Shell::CreateGlobalTemplate() {
   Handle<ObjectTemplate> global_template = ObjectTemplate::New();
   global_template->Set(String::New("print"), FunctionTemplate::New(Print));
   global_template->Set(String::New("write"), FunctionTemplate::New(Write));
-  global_template->Set(String::New("read"), FunctionTemplate::New(Read));
+  global_template->Set(String::New("readfile"), FunctionTemplate::New(Read));
+  global_template->Set(String::New("writefile"), FunctionTemplate::New(WriteFile));
   global_template->Set(String::New("readline"),
                        FunctionTemplate::New(ReadLine));
   global_template->Set(String::New("load"), FunctionTemplate::New(Load));
@@ -886,7 +906,8 @@ static char* ReadWord(char* data) {
 Handle<String> Shell::ReadFile(const char* name) {
   int size = 0;
   char* chars = ReadChars(name, &size);
-  if (chars == NULL) return Handle<String>();
+  if (chars == NULL) 
+	return Handle<String>();
   Handle<String> result = String::New(chars);
   delete[] chars;
   return result;
